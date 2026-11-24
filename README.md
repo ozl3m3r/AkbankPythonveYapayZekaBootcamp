@@ -2,86 +2,84 @@
 
 ## Metro Simulation
 
-### 1. Proje Açıklaması
+### 1. Project Description
 
-Bu proje, metro istasyonları arasındaki en kısa rotayı ve en az aktarma ile gidilebilecek güzergahı bulmayı amaçlamaktadır. Kullanıcı, başlangıç ve bitiş noktalarını seçerek en hızlı rotayı ve en az aktarmalı rotayı öğrenebilir.
+This project aims to find the shortest route between metro stations and the route with the fewest transfers. The user selects a start and an end point and can find out the fastest route and the route with the fewest transfers.
 
-### 2. Kullanılan Teknolojiler ve Kütüphaneler
+### 2. Technologies and Libraries Used
 
- - **Python 3:** Projenin temel programlama dilidir.
+ - **Python 3:** The main programming language of the project.
 
- - **collections:** `defaultdict` ve `deque` yapıları için kullanılmıştır.
+ - **collections:** Used for the `defaultdict` and `deque` structures.
 
- - **heapq:** A* algoritmasında öncelik kuyruğu oluşturmak için kullanılmıştır.
+ - **heapq:** Used to create the priority queue in the A* algorithm.
 
- - **typing:** Tür ipuçları için kullanılmıştır.
+ - **typing:** Used for type hints.
 
-### 3. Algoritmaların Çalışma Mantığı
+### 3. How the Algorithms Work
 
-#### BFS Algoritması (En Az Aktarmalı Rota)
+#### BFS Algorithm (Route with Fewest Transfers)
 
-BFS algoritması, bir grafiği katman katman keşfederek en kısa yol veya en az aktarmalı rotayı bulmak için kullanılır. Bu algoritmada, başlangıç noktasından itibaren tüm komşu istasyonlar sırasıyla keşfedilir ve hedef istasyon bulunana kadar devam edilir. Bu sayede, minimum aktarma sayısı ile en kısa yol bulunur.
+The BFS algorithm is used to find the shortest path or the route with the fewest transfers by exploring a graph layer by layer. In this algorithm, all neighboring stations are explored in order starting from the starting point, and this continues until the target station is found. This way, the shortest path with the minimum number of transfers is found.
 
-#### A* Algoritması (En Hızlı Rota)
-A* algoritması, her adımda, mevcut yolu ve hedefe olan tahmini mesafeyi dikkate alarak, en düşük süreli yolu bulur. Bu sayede, daha hızlı rotalar bulunabilir. A* algoritması, rotaları öncelik sırasına koyarak ve her adımda toplam süreyi hesaplayarak, en kısa süreyi sağlayan rotayı bulur.
+#### A* Algorithm (Fastest Route)
+At each step, the A* algorithm finds the path with the lowest duration by taking into account the current path and the estimated distance to the target. This makes it possible to find faster routes. By prioritizing routes and calculating the total duration at each step, the A* algorithm finds the route that provides the shortest duration.
 
-### Neden Bu Algoritmalar Kullanılıyor?
-- **BFS** algoritması, en az aktarma ile rotayı bulmak için oldukça etkilidir çünkü her seviyede komşu istasyonlar keşfedilir.
-- **A\*** algoritması ise, rota uzunlukları ve süreleri arasında optimizasyon sağlar, daha hızlı rotaları bulmak için tercih edilir.
+### Why Are These Algorithms Used?
+- The **BFS** algorithm is very effective for finding the route with the fewest transfers because neighboring stations are explored at each level.
+- The **A\*** algorithm, on the other hand, provides optimization between route lengths and durations and is preferred for finding faster routes.
 
 
-### 4. Örnek Kullanım ve Test Sonuçları
+### 4. Example Usage and Test Results
 
-Aşağıda verilen metro ağı üzerinden bazı test senaryoları uygulanmıştır.
+Some test scenarios were applied on the metro network given below.
 
-#### Test 1: AŞTİ'den OSB'ye en az aktarmalı rota ve en hızlı rota
+#### Test 1: Route with fewest transfers and fastest route from AŞTİ to OSB
 
-    `print("\n1. AŞTİ'den OSB'ye:")`
-    `rota = metro.en_az_aktarma_bul("M1", "K4")`
-    `if rota:`
-        `print("En az aktarmalı rota:", " -> ".join(i.ad for i in rota))`
+    `print("\n1. From AŞTİ to OSB:")`
+    `route = metro.find_min_transfer_route("M1", "K4")`
+    `if route:`
+        `print("Route with fewest transfers:", " -> ".join(i.name for i in route))`
 
-    `sonuc = metro.en_hizli_rota_bul("M1", "K4")`
-    `if sonuc:`
-        `rota, sure = sonuc`
-        `print(f"En hızlı rota ({sure} dakika):", " -> ".join(i.ad for i in rota))`
+    `result = metro.find_fastest_route("M1", "K4")`
+    `if result:`
+        `route, duration = result`
+        `print(f"Fastest route ({duration} minutes):", " -> ".join(i.name for i in route))`
 
-##### Çıktı:
+##### Output:
 
-`1. AŞTİ'den OSB'ye:`
+`1. From AŞTİ to OSB:`
 
-`En az aktarmalı rota: AŞTİ -> Kızılay -> Kızılay -> Ulus -> Demetevler -> OSB`
+`Route with fewest transfers: AŞTİ -> Kızılay -> Kızılay -> Ulus -> Demetevler -> OSB`
 
-`En hızlı rota (25 dakika): AŞTİ -> Kızılay -> Kızılay -> Ulus -> Demetevler -> OSB`
+`Fastest route (25 minutes): AŞTİ -> Kızılay -> Kızılay -> Ulus -> Demetevler -> OSB`
 
-#### Test 2: Batıkent'ten Keçiören'e en az aktarmalı rota ve en hızlı rota
+#### Test 2: Route with fewest transfers and fastest route from Batıkent to Keçiören
 
-    `print("\n2. Batıkent'ten Keçiören'e:")`
-    `rota = metro.en_az_aktarma_bul("T1", "T4")`
-    `if rota:`
-        `print("En az aktarmalı rota:", " -> ".join(i.ad for i in rota))`
+    `print("\n2. From Batıkent to Keçiören:")`
+    `route = metro.find_min_transfer_route("T1", "T4")`
+    `if route:`
+        `print("Route with fewest transfers:", " -> ".join(i.name for i in route))`
 
-    `sonuc = metro.en_hizli_rota_bul("T1", "T4")`
-    `if sonuc:`
-        `rota, sure = sonuc`
-        `print(f"En hızlı rota ({sure} dakika):", " -> ".join(i.ad for i in rota))`
+    `result = metro.find_fastest_route("T1", "T4")`
+    `if result:`
+        `route, duration = result`
+        `print(f"Fastest route ({duration} minutes):", " -> ".join(i.name for i in route))`
 
-##### Çıktı:
+##### Output:
 
-`2. Batıkent'ten Keçiören'e:`
+`2. From Batıkent to Keçiören:`
 
-`En az aktarmalı rota: Batıkent -> Demetevler -> Gar -> Keçiören`
+`Route with fewest transfers: Batıkent -> Demetevler -> Gar -> Keçiören`
 
-`En hızlı rota (21 dakika): Batıkent -> Demetevler -> Gar -> Keçiören`
+`Fastest route (21 minutes): Batıkent -> Demetevler -> Gar -> Keçiören`
 
-### 5. Projeyi Geliştirme Fikirleri
+### 5. Ideas for Improving the Project
 
-- **Hata yönetimi:** Yanlış girişleri kontrol eden ve kullanıcıya uygun hatalar döndüren bir yapı eklenebilir.
+- **Error handling:** A structure could be added that checks for incorrect inputs and returns appropriate errors to the user.
 
-- **Harita entegrasyonu:** Metro istasyonlarını görselleştiren bir harita arayüzü geliştirilebilir.
+- **Map integration:** A map interface that visualizes the metro stations could be developed.
 
-- **Gerçek zamanlı veri:** Metro sefer sürelerini ve bekleme zamanlarını dinamik olarak güncelleyen bir sistem eklenebilir.
+- **Real-time data:** A system could be added that dynamically updates metro service times and waiting times.
 
-- **Farklı optimizasyonlar:** Farklı metriklere göre (örneğin bilet fiyatı veya kalabalık durumu) rota önerileri sunulabilir.
-  
-
+- **Different optimizations:** Route suggestions could be offered based on different metrics (for example, ticket price or crowding).

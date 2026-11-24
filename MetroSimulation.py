@@ -1,255 +1,255 @@
-from collections import defaultdict, deque # Koleksiyonlar modülünden özel veri yapıları içe aktarılır.
-import heapq # Öncelik kuyruğu (min-heap) için heapq modülü kullanılır.
-from typing import Dict, List, Set, Tuple, Optional # Tip ipuçları (type hints) için gerekli türler içe aktarılır.
+from collections import defaultdict, deque # Imports special data structures from the collections module.
+import heapq # The heapq module is used for the priority queue (min-heap).
+from typing import Dict, List, Set, Tuple, Optional # Imports the types needed for type hints.
 
-class Istasyon:
-    def __init__(self, idx: str, ad: str, hat: str):
-        self.idx = idx # İstasyonun kimlik numarası (ID)
-        self.ad = ad # İstasyonun adı
-        self.hat = hat # İstasyonun ait olduğu hat
-        self.komsular: List[Tuple['Istasyon', int]] = []  # (istasyon, süre) tuple'ları
+class Station:
+    def __init__(self, idx: str, name: str, line: str):
+        self.idx = idx # Station ID
+        self.name = name # Station name
+        self.line = line # Line the station belongs to
+        self.neighbors: List[Tuple['Station', int]] = []  # (station, duration) tuples
 
-    def komsu_ekle(self, istasyon: 'Istasyon', sure: int):
-        self.komsular.append((istasyon, sure))  # Komşu istasyonu ve ulaşım süresini listeye ekler
+    def add_neighbor(self, station: 'Station', duration: int):
+        self.neighbors.append((station, duration))  # Adds the neighboring station and the travel time to the list
 
-class MetroAgi:
+class MetroNetwork:
     def __init__(self):
-        self.istasyonlar: Dict[str, Istasyon] = {} # İstasyonların ID'ye göre saklandığı sözlük
-        self.hatlar: Dict[str, List[Istasyon]] = defaultdict(list) # Hat bazında istasyonları saklayan sözlük (default olarak boş liste oluşturur)
+        self.stations: Dict[str, Station] = {} # Dictionary that stores stations by ID
+        self.lines: Dict[str, List[Station]] = defaultdict(list) # Dictionary that stores stations per line (creates an empty list by default)
 
-    def istasyon_ekle(self, idx: str, ad: str, hat: str) -> None:
-        # Eğer istasyon ID daha önce eklenmemişse yeni bir istasyon oluşturur
-        if idx not in self.istasyonlar:
-            istasyon = Istasyon(idx, ad, hat)
-            self.istasyonlar[idx] = istasyon # İstasyonu ID ile saklar
-            self.hatlar[hat].append(istasyon) # İlgili hattın istasyon listesine ekler
+    def add_station(self, idx: str, name: str, line: str) -> None:
+        # Creates a new station if the station ID has not been added before
+        if idx not in self.stations:
+            station = Station(idx, name, line)
+            self.stations[idx] = station # Stores the station by its ID
+            self.lines[line].append(station) # Adds it to the station list of the relevant line
 
-    def baglanti_ekle(self, istasyon1_id: str, istasyon2_id: str, sure: int) -> None:
-        # İstasyonları ID ile sözlükten al
-        istasyon1 = self.istasyonlar[istasyon1_id]
-        istasyon2 = self.istasyonlar[istasyon2_id]
-        # İki istasyonu birbirine bağla (çift yönlü bağlantı)
-        istasyon1.komsu_ekle(istasyon2, sure)
-        istasyon2.komsu_ekle(istasyon1, sure)
+    def add_connection(self, station1_id: str, station2_id: str, duration: int) -> None:
+        # Get the stations from the dictionary by ID
+        station1 = self.stations[station1_id]
+        station2 = self.stations[station2_id]
+        # Connect the two stations to each other (bidirectional connection)
+        station1.add_neighbor(station2, duration)
+        station2.add_neighbor(station1, duration)
 
-    def en_az_aktarma_bul(self, baslangic_id: str, hedef_id: str) -> Optional[List[Istasyon]]:
-        """BFS algoritması kullanarak en az aktarmalı rotayı bulur
+    def find_min_transfer_route(self, start_id: str, target_id: str) -> Optional[List[Station]]:
+        """Finds the route with the fewest transfers using the BFS algorithm
 
-        Bu fonksiyonu tamamlayın:
-        1. Başlangıç ve hedef istasyonların varlığını kontrol edin
-        2. BFS algoritmasını kullanarak en az aktarmalı rotayı bulun
-        3. Rota bulunamazsa None, bulunursa istasyon listesi döndürün
-        4. Fonksiyonu tamamladıktan sonra, # TODO ve pass satırlarını kaldırın
+        Complete this function:
+        1. Check that the start and target stations exist
+        2. Find the route with the fewest transfers using the BFS algorithm
+        3. Return None if no route is found, otherwise return the list of stations
+        4. After completing the function, remove the # TODO and pass lines
 
-        İpuçları:
-        - collections.deque kullanarak bir kuyruk oluşturun, HINT: kuyruk = deque([(baslangic, [baslangic])])
-        - Ziyaret edilen istasyonları takip edin
-        - Her adımda komşu istasyonları keşfedin
+        Hints:
+        - Create a queue using collections.deque, HINT: queue = deque([(start, [start])])
+        - Keep track of visited stations
+        - Explore neighboring stations at each step
         """
 
-        # Eğer başlangıç veya hedef istasyon haritada yoksa, rota bulunamaz.
-        if baslangic_id not in self.istasyonlar or hedef_id not in self.istasyonlar:
+        # If the start or target station is not on the map, no route can be found.
+        if start_id not in self.stations or target_id not in self.stations:
             return None
-        # Başlangıç ve hedef istasyon nesnelerini al.
-        baslangic = self.istasyonlar[baslangic_id]
-        hedef = self.istasyonlar[hedef_id]
-        ziyaret_edildi = {baslangic} # Ziyaret edilen istasyonları takip etmek için bir küme (set) oluştur.
+        # Get the start and target station objects.
+        start = self.stations[start_id]
+        target = self.stations[target_id]
+        visited = {start} # Create a set to keep track of visited stations.
 
-        # BFS için kuyruk oluştur: (mevcut_istasyon, rota)
-        # Başlangıçta kuyrukta sadece başlangıç istasyonu var
-        kuyruk = deque()
-        kuyruk.append((baslangic, [baslangic]))
+        # Create the queue for BFS: (current_station, route)
+        # Initially the queue only contains the start station
+        queue = deque()
+        queue.append((start, [start]))
 
-        # Ziyaret edilen istasyonları takip etmek için küme
-        ziyaret_edildi = set()
-        ziyaret_edildi.add(baslangic)
+        # Set to keep track of visited stations
+        visited = set()
+        visited.add(start)
 
-        while kuyruk:
-            # Kuyruğun başındaki elemanı al
-            mevcut_durak, rota = kuyruk.popleft()
+        while queue:
+            # Take the element at the front of the queue
+            current_station, route = queue.popleft()
 
-            # Hedefe ulaşıldıysa rotayı döndür
-            if mevcut_durak == hedef:
-                return rota
+            # If the target has been reached, return the route
+            if current_station == target:
+                return route
 
-            # Mevcut istasyonun tüm komşularını kontrol et
-            for komsu_durak, _ in mevcut_durak.komsular:
-                # Eğer komşu daha önce ziyaret edilmediyse
-                if komsu_durak not in ziyaret_edildi:
-                    # Komşuyu ziyaret edildi olarak işaretle
-                    ziyaret_edildi.add(komsu_durak)
-                    # Yeni rotayı oluştur ve mevcut rotaya komşuyu ekle
-                    yeni_rota = rota.copy()
-                    yeni_rota.append(komsu_durak)
-                    # Kuyruğa yeni rotayı ekle
-                    kuyruk.append((komsu_durak, yeni_rota))
+            # Check all neighbors of the current station
+            for neighbor_station, _ in current_station.neighbors:
+                # If the neighbor has not been visited before
+                if neighbor_station not in visited:
+                    # Mark the neighbor as visited
+                    visited.add(neighbor_station)
+                    # Build the new route by adding the neighbor to the current route
+                    new_route = route.copy()
+                    new_route.append(neighbor_station)
+                    # Add the new route to the queue
+                    queue.append((neighbor_station, new_route))
 
-        # Rota bulunamadı
+        # No route found
         return None
 
-    def en_hizli_rota_bul(self, baslangic_id: str, hedef_id: str) -> Optional[Tuple[List[Istasyon], int]]:
-        """A* algoritması kullanarak en hızlı rotayı bulur
+    def find_fastest_route(self, start_id: str, target_id: str) -> Optional[Tuple[List[Station], int]]:
+        """Finds the fastest route using the A* algorithm
 
-        Bu fonksiyonu tamamlayın:
-        1. Başlangıç ve hedef istasyonların varlığını kontrol edin
-        2. A* algoritmasını kullanarak en hızlı rotayı bulun
-        3. Rota bulunamazsa None, bulunursa (istasyon_listesi, toplam_sure) tuple'ı döndürün
-        4. Fonksiyonu tamamladıktan sonra, # TODO ve pass satırlarını kaldırın
+        Complete this function:
+        1. Check that the start and target stations exist
+        2. Find the fastest route using the A* algorithm
+        3. Return None if no route is found, otherwise return a (station_list, total_duration) tuple
+        4. After completing the function, remove the # TODO and pass lines
 
-        İpuçları:
-        - heapq modülünü kullanarak bir öncelik kuyruğu oluşturun, HINT: pq = [(0, id(baslangic), baslangic, [baslangic])]
-        - Ziyaret edilen istasyonları takip edin
-        - Her adımda toplam süreyi hesaplayın
-        - En düşük süreye sahip rotayı seçin
+        Hints:
+        - Create a priority queue using the heapq module, HINT: pq = [(0, id(start), start, [start])]
+        - Keep track of visited stations
+        - Calculate the total duration at each step
+        - Choose the route with the lowest duration
         """
 
-        if baslangic_id not in self.istasyonlar or hedef_id not in self.istasyonlar:
-            # Eğer başlangıç veya hedef istasyonları istasyonlar sözlüğünde bulunmuyorsa, rota bulunamaz.
+        if start_id not in self.stations or target_id not in self.stations:
+            # If the start or target station is not in the stations dictionary, no route can be found.
             return None
 
-        # Başlangıç istasyonunu, hedef istasyonunu sözlükten alıyoruz.
-        baslangic = self.istasyonlar[baslangic_id]
-        hedef = self.istasyonlar[hedef_id]
-        # Ziyaret edilen istasyonları takip etmek için boş bir küme (set) oluşturuyoruz.
-        # BFS algoritmasında her bir istasyonu yalnızca bir kez ziyaret etmemiz gerekiyor.
-        ziyaret_edildi = set()
+        # Get the start station and the target station from the dictionary.
+        start = self.stations[start_id]
+        target = self.stations[target_id]
+        # Create an empty set to keep track of visited stations.
+        # In the BFS algorithm, each station only needs to be visited once.
+        visited = set()
 
-        # Öncelik kuyruğu (pq): (toplam_sure, id(mevcut_durak), mevcut_durak, rota)
+        # Priority queue (pq): (total_duration, id(current_station), current_station, route)
         pq = []
-        # Başlangıç noktası kuyruğa ekleniyor.
-        heapq.heappush(pq, (0, id(baslangic), baslangic, [baslangic]))
+        # The starting point is added to the queue.
+        heapq.heappush(pq, (0, id(start), start, [start]))
 
-        # Ziyaret edilen duraklar ve en kısa süreleri saklanacak.
-        ziyaret_edildi = {}
+        # Visited stations and their shortest durations will be stored.
+        visited = {}
 
-        # Öncelik kuyruğu boşalana kadar devam et.
+        # Continue until the priority queue is empty.
         while pq:
-            # En düşük süreli öğeyi al.
-            toplam_sure, _, mevcut_durak, rota = heapq.heappop(pq)
+            # Take the item with the lowest duration.
+            total_duration, _, current_station, route = heapq.heappop(pq)
 
-            # Eğer hedef durağa ulaşıldıysa, rota ve toplam süreyi döndür.
-            if mevcut_durak == hedef:
-                return (rota, toplam_sure)
+            # If the target station has been reached, return the route and the total duration.
+            if current_station == target:
+                return (route, total_duration)
 
-            # Eğer bu istasyon daha önce daha düşük süreyle ziyaret edildiyse atla
-            if mevcut_durak in ziyaret_edildi and ziyaret_edildi[mevcut_durak] < toplam_sure:
+            # Skip this station if it was previously visited with a lower duration
+            if current_station in visited and visited[current_station] < total_duration:
                 continue
 
-            # Tüm komşuları kontrol et
-            for komsu_durak, sure in mevcut_durak.komsular:
-                # Yeni toplam süreyi hesapla (mevcut süre + komşuya gidiş süresi)
-                yeni_toplam = toplam_sure + sure
-                # Eğer komşu ilk kez ziyaret ediliyor veya daha iyi bir yol bulunduysa
-                if komsu_durak not in ziyaret_edildi or yeni_toplam < ziyaret_edildi.get(komsu_durak, float('inf')):
-                    # Bu komşu için en iyi süreyi güncelle
-                    ziyaret_edildi[komsu_durak] = yeni_toplam
-                    # Yeni rotayı oluştur
-                    yeni_rota = rota.copy()
-                    yeni_rota.append(komsu_durak)
-                    # Öncelik kuyruğuna yeni rotayı ekle
-                    heapq.heappush(pq, (yeni_toplam, id(komsu_durak), komsu_durak, yeni_rota))
+            # Check all neighbors
+            for neighbor_station, duration in current_station.neighbors:
+                # Calculate the new total duration (current duration + travel time to the neighbor)
+                new_total = total_duration + duration
+                # If the neighbor is being visited for the first time or a better path has been found
+                if neighbor_station not in visited or new_total < visited.get(neighbor_station, float('inf')):
+                    # Update the best duration for this neighbor
+                    visited[neighbor_station] = new_total
+                    # Build the new route
+                    new_route = route.copy()
+                    new_route.append(neighbor_station)
+                    # Add the new route to the priority queue
+                    heapq.heappush(pq, (new_total, id(neighbor_station), neighbor_station, new_route))
 
-        # Rota bulunamadı
+        # No route found
         return None
 
-# Örnek Kullanım
+# Example Usage
 if __name__ == "__main__":
-    metro = MetroAgi()
+    metro = MetroNetwork()
 
-    # İstasyonlar ekleme
-    # Kırmızı Hat
-    metro.istasyon_ekle("K1", "Kızılay", "Kırmızı Hat")
-    metro.istasyon_ekle("K2", "Ulus", "Kırmızı Hat")
-    metro.istasyon_ekle("K3", "Demetevler", "Kırmızı Hat")
-    metro.istasyon_ekle("K4", "OSB", "Kırmızı Hat")
+    # Adding stations
+    # Red Line
+    metro.add_station("K1", "Kızılay", "Kırmızı Hat")
+    metro.add_station("K2", "Ulus", "Kırmızı Hat")
+    metro.add_station("K3", "Demetevler", "Kırmızı Hat")
+    metro.add_station("K4", "OSB", "Kırmızı Hat")
 
-    # Mavi Hat
-    metro.istasyon_ekle("M1", "AŞTİ", "Mavi Hat")
-    metro.istasyon_ekle("M2", "Kızılay", "Mavi Hat")  # Aktarma noktası
-    metro.istasyon_ekle("M3", "Sıhhiye", "Mavi Hat")
-    metro.istasyon_ekle("M4", "Gar", "Mavi Hat")
+    # Blue Line
+    metro.add_station("M1", "AŞTİ", "Mavi Hat")
+    metro.add_station("M2", "Kızılay", "Mavi Hat")  # Transfer point
+    metro.add_station("M3", "Sıhhiye", "Mavi Hat")
+    metro.add_station("M4", "Gar", "Mavi Hat")
 
-    # Turuncu Hat
-    metro.istasyon_ekle("T1", "Batıkent", "Turuncu Hat")
-    metro.istasyon_ekle("T2", "Demetevler", "Turuncu Hat")  # Aktarma noktası
-    metro.istasyon_ekle("T3", "Gar", "Turuncu Hat")  # Aktarma noktası
-    metro.istasyon_ekle("T4", "Keçiören", "Turuncu Hat")
+    # Orange Line
+    metro.add_station("T1", "Batıkent", "Turuncu Hat")
+    metro.add_station("T2", "Demetevler", "Turuncu Hat")  # Transfer point
+    metro.add_station("T3", "Gar", "Turuncu Hat")  # Transfer point
+    metro.add_station("T4", "Keçiören", "Turuncu Hat")
 
-    # Bağlantılar ekleme
-    # Kırmızı Hat bağlantıları
-    metro.baglanti_ekle("K1", "K2", 4)  # Kızılay -> Ulus
-    metro.baglanti_ekle("K2", "K3", 6)  # Ulus -> Demetevler
-    metro.baglanti_ekle("K3", "K4", 8)  # Demetevler -> OSB
+    # Adding connections
+    # Red Line connections
+    metro.add_connection("K1", "K2", 4)  # Kızılay -> Ulus
+    metro.add_connection("K2", "K3", 6)  # Ulus -> Demetevler
+    metro.add_connection("K3", "K4", 8)  # Demetevler -> OSB
 
-    # Mavi Hat bağlantıları
-    metro.baglanti_ekle("M1", "M2", 5)  # AŞTİ -> Kızılay
-    metro.baglanti_ekle("M2", "M3", 3)  # Kızılay -> Sıhhiye
-    metro.baglanti_ekle("M3", "M4", 4)  # Sıhhiye -> Gar
+    # Blue Line connections
+    metro.add_connection("M1", "M2", 5)  # AŞTİ -> Kızılay
+    metro.add_connection("M2", "M3", 3)  # Kızılay -> Sıhhiye
+    metro.add_connection("M3", "M4", 4)  # Sıhhiye -> Gar
 
-    # Turuncu Hat bağlantıları
-    metro.baglanti_ekle("T1", "T2", 7)  # Batıkent -> Demetevler
-    metro.baglanti_ekle("T2", "T3", 9)  # Demetevler -> Gar
-    metro.baglanti_ekle("T3", "T4", 5)  # Gar -> Keçiören
+    # Orange Line connections
+    metro.add_connection("T1", "T2", 7)  # Batıkent -> Demetevler
+    metro.add_connection("T2", "T3", 9)  # Demetevler -> Gar
+    metro.add_connection("T3", "T4", 5)  # Gar -> Keçiören
 
-    # Hat aktarma bağlantıları (aynı istasyon farklı hatlar)
-    metro.baglanti_ekle("K1", "M2", 2)  # Kızılay aktarma
-    metro.baglanti_ekle("K3", "T2", 3)  # Demetevler aktarma
-    metro.baglanti_ekle("M4", "T3", 2)  # Gar aktarma
+    # Line transfer connections (same station on different lines)
+    metro.add_connection("K1", "M2", 2)  # Kızılay transfer
+    metro.add_connection("K3", "T2", 3)  # Demetevler transfer
+    metro.add_connection("M4", "T3", 2)  # Gar transfer
 
-    # Test senaryoları
-    print("\n=== Test Senaryoları ===")
+    # Test scenarios
+    print("\n=== Test Scenarios ===")
 
-    # Senaryo 1: AŞTİ'den OSB'ye
-    print("\n1. AŞTİ'den OSB'ye:")
-    rota = metro.en_az_aktarma_bul("M1", "K4")
-    if rota:
-        print("En az aktarmalı rota:", " -> ".join(i.ad for i in rota))
+    # Scenario 1: From AŞTİ to OSB
+    print("\n1. From AŞTİ to OSB:")
+    route = metro.find_min_transfer_route("M1", "K4")
+    if route:
+        print("Route with fewest transfers:", " -> ".join(i.name for i in route))
 
-    sonuc = metro.en_hizli_rota_bul("M1", "K4")
-    if sonuc:
-        rota, sure = sonuc
-        print(f"En hızlı rota ({sure} dakika):", " -> ".join(i.ad for i in rota))
+    result = metro.find_fastest_route("M1", "K4")
+    if result:
+        route, duration = result
+        print(f"Fastest route ({duration} minutes):", " -> ".join(i.name for i in route))
 
-    # Senaryo 2: Batıkent'ten Keçiören'e
-    print("\n2. Batıkent'ten Keçiören'e:")
-    rota = metro.en_az_aktarma_bul("T1", "T4")
-    if rota:
-        print("En az aktarmalı rota:", " -> ".join(i.ad for i in rota))
+    # Scenario 2: From Batıkent to Keçiören
+    print("\n2. From Batıkent to Keçiören:")
+    route = metro.find_min_transfer_route("T1", "T4")
+    if route:
+        print("Route with fewest transfers:", " -> ".join(i.name for i in route))
 
-    sonuc = metro.en_hizli_rota_bul("T1", "T4")
-    if sonuc:
-        rota, sure = sonuc
-        print(f"En hızlı rota ({sure} dakika):", " -> ".join(i.ad for i in rota))
+    result = metro.find_fastest_route("T1", "T4")
+    if result:
+        route, duration = result
+        print(f"Fastest route ({duration} minutes):", " -> ".join(i.name for i in route))
 
-    # Senaryo 3: Keçiören'den AŞTİ'ye
-    print("\n3. Keçiören'den AŞTİ'ye:")
-    rota = metro.en_az_aktarma_bul("T4", "M1")
-    if rota:
-        print("En az aktarmalı rota:", " -> ".join(i.ad for i in rota))
+    # Scenario 3: From Keçiören to AŞTİ
+    print("\n3. From Keçiören to AŞTİ:")
+    route = metro.find_min_transfer_route("T4", "M1")
+    if route:
+        print("Route with fewest transfers:", " -> ".join(i.name for i in route))
 
-    sonuc = metro.en_hizli_rota_bul("T4", "M1")
-    if sonuc:
-        rota, sure = sonuc
-        print(f"En hızlı rota ({sure} dakika):", " -> ".join(i.ad for i in rota))
+    result = metro.find_fastest_route("T4", "M1")
+    if result:
+        route, duration = result
+        print(f"Fastest route ({duration} minutes):", " -> ".join(i.name for i in route))
 
-    # Senaryo 4: Sıhhiye'den Keçiören'e (Mavi Hat'tan Turuncu Hat'a aktarma)
-    print("\n4. Sıhhiye'den Keçiören'e:")
-    rota = metro.en_az_aktarma_bul("M3", "T4")
-    if rota:
-        print("En az aktarmalı rota:", " -> ".join(i.ad for i in rota))
+    # Scenario 4: From Sıhhiye to Keçiören (transfer from Blue Line to Orange Line)
+    print("\n4. From Sıhhiye to Keçiören:")
+    route = metro.find_min_transfer_route("M3", "T4")
+    if route:
+        print("Route with fewest transfers:", " -> ".join(i.name for i in route))
 
-    sonuc = metro.en_hizli_rota_bul("M3", "T4")
-    if sonuc:
-        rota, sure = sonuc
-        print(f"En hızlı rota ({sure} dakika):", " -> ".join(i.ad for i in rota))
+    result = metro.find_fastest_route("M3", "T4")
+    if result:
+        route, duration = result
+        print(f"Fastest route ({duration} minutes):", " -> ".join(i.name for i in route))
 
-    # Senaryo 5: OSB'den Batıkent'e (Kırmızı Hat'tan Turuncu Hat'a aktarma)
-    print("\n5. OSB'den Batıkent'e:")
-    rota = metro.en_az_aktarma_bul("K4", "T1")
-    if rota:
-        print("En az aktarmalı rota:", " -> ".join(i.ad for i in rota))
+    # Scenario 5: From OSB to Batıkent (transfer from Red Line to Orange Line)
+    print("\n5. From OSB to Batıkent:")
+    route = metro.find_min_transfer_route("K4", "T1")
+    if route:
+        print("Route with fewest transfers:", " -> ".join(i.name for i in route))
 
-    sonuc = metro.en_hizli_rota_bul("K4", "T1")
-    if sonuc:
-        rota, sure = sonuc
-        print(f"En hızlı rota ({sure} dakika):", " -> ".join(i.ad for i in rota))
+    result = metro.find_fastest_route("K4", "T1")
+    if result:
+        route, duration = result
+        print(f"Fastest route ({duration} minutes):", " -> ".join(i.name for i in route))
